@@ -39,21 +39,16 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Toaster } from "@/components/ui/sonner";
-import { api } from "@/lib/api";
-import { toast } from "sonner"
 import { WorkflowType } from "@/models/workflow";
 import { context } from "@/models/context";
 import Tasks from "@/components/tasks";
-
-interface FormCreateWorkflowProps {
-  name: string;
-}
-
+import useWorkflow, { FormCreateWorkflowProps } from "@/hooks/useWorkflow";
 
 export default function Workflow() {
   const { authenticated, loading, logout } = useContext(AuthContext)
   const { data: workflows, error, isLoading, mutate } = useFetch<WorkflowType[]>('/workflow')
   const { data: contexts } = useFetch<context[]>('/context')
+  const hook = useWorkflow()
   const [openModalCreateContext, setOpenModalCreateContext] = useState(false);
   const { handleSubmit: handleSubmitFormCreateWorkflow, register: registerFormCreateWorkflow } = useForm<FormCreateWorkflowProps>();
   const [contextSelected, setContextSelected] = useState(contexts?.[0]?.id);
@@ -61,70 +56,8 @@ export default function Workflow() {
 
   const onSubmitFormCreateContext = (data: FormCreateWorkflowProps) => {
     setOpenModalCreateContext(false)
-    create(data)
+    hook.create(data, contextSelected, mutate)
   };
-
-
-  const create = async (dataForm: FormCreateWorkflowProps) => {
-    try {
-      const createContext = {
-        name: dataForm.name,
-        context_id: contextSelected
-      }
-      if (!createContext.context_id) throw new Error()
-      await api.post('/workflow', { ...createContext });
-      mutate('/workflow')
-      toast.success('Tarefa criada')
-    } catch (error: any) {
-      toast.error('Erro ao criar tarefa',
-        { description: `${JSON.stringify(error?.response?.data?.message)}` })
-    }
-  }
-
-  const execute = async (workflowId: string) => {
-    try {
-      await api.get(`/tasks/${workflowId}`);
-      mutate('/workflow')
-      toast.success('tarefas em execução confira seção de logs para mais detalhes!')
-    } catch (error: any) {
-      toast.error('Erro ao executar tarefa',
-        { description: `${JSON.stringify(error?.response?.data?.message)}` })
-    }
-  }
-
-
-  const drop = async (workflowId: string) => {
-    try {
-      await api.delete(`/workflow/${workflowId}`);
-      mutate('/workflow')
-      toast.success('Tarefa deletada')
-    } catch (error: any) {
-      toast.error('Erro ao deletar tarefa',
-        { description: `${JSON.stringify(error?.response?.data?.message)}` })
-    }
-  }
-
-  const deactivateWorkflow = async (workflowId: string) => {
-    try {
-      await api.post(`/workflow/deactivate/${workflowId}`);
-      mutate('/workflow')
-      toast.success('Tarefa desativada')
-    } catch (error: any) {
-      toast.error('Erro ao desativar tarefa',
-        { description: `${JSON.stringify(error?.response?.data?.message)}` })
-    }
-  }
-
-  const activateWorkflow = async (workflowId: string) => {
-    try {
-      await api.post(`/workflow/activate/${workflowId}`);
-      mutate('/workflow')
-      toast.success('Tarefa reativada')
-    } catch (error: any) {
-      toast.error('Erro ao reativar tarefa',
-        { description: `${JSON.stringify(error?.response?.data?.message)}` })
-    }
-  }
 
   if (loading) return <Loading />
   if (isLoading) return <Loading />
@@ -229,7 +162,7 @@ export default function Workflow() {
                             >Voltar</Button>
                             <Button
                               type="button"
-                              onClick={() => execute(workflow.id)}
+                              onClick={() => hook.execute(workflow.id, mutate)}
                               className="w-32">Iniciar</Button>
                           </DialogClose>
                         </DialogContent>
@@ -239,7 +172,7 @@ export default function Workflow() {
                   <TableCell>
                     {workflow.active ?
                       <div
-                        onClick={() => deactivateWorkflow(workflow.id)}
+                        onClick={() => hook.deactivateWorkflow(workflow.id, mutate)}
                         className="flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                         <PowerOff
                           className="hover:cursor-pointer"
@@ -247,7 +180,7 @@ export default function Workflow() {
                       </div>
                       :
                       <div
-                        onClick={() => activateWorkflow(workflow.id)}
+                        onClick={() => hook.activateWorkflow(workflow.id, mutate)}
                         className="flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                         <Power
                           className="hover:cursor-pointer"
@@ -287,7 +220,7 @@ export default function Workflow() {
                           <Button
                             type="button"
                             variant="destructive"
-                            onClick={() => drop(workflow.id)}
+                            onClick={() => hook.drop(workflow.id, mutate)}
                             className="w-32">Confirmar</Button>
                         </DialogClose>
                       </DialogContent>

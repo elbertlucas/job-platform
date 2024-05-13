@@ -33,97 +33,24 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Toaster } from "@/components/ui/sonner";
-import { api } from "@/lib/api";
-import { toast } from "sonner"
+import useWorkflowGroup, { FormCreateContextProps } from "@/hooks/useWorkflowGroup";
 
-interface FormCreateContextProps {
-  name: string;
-}
+
+
 
 export default function WorkflowsGroup() {
   const { authenticated, loading, logout } = useContext(AuthContext)
   const { data: contexts, error, isLoading, mutate } = useFetch<context[]>('/context')
+  const hook = useWorkflowGroup()
   const [workflowsAttached, setWorkflowsAttached] = useState<workflow[]>([]);
   const [openModalCreateContext, setOpenModalCreateContext] = useState(false);
-  const [contextName, setContextName] = useState('');
+  
   const { handleSubmit: handleSubmitFormCreateContext, register: registerFormCreateContext } = useForm<FormCreateContextProps>();
 
   const onSubmitFormCreateContext = (data: FormCreateContextProps) => {
     setOpenModalCreateContext(false)
-    create(data)
+    hook.create(data, mutate)
   };
-
-  const updateContextName = async (contexId: string) => {
-    try {
-      await api.patch(`/context/${contexId}`, { name: contextName });
-      mutate('/context')
-      toast.success('Nome alterado')
-    } catch (error: any) {
-      toast.error('erro ao alterar nome', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  };
-
-  const create = async (createContext: FormCreateContextProps) => {
-    try {
-      await api.post('/context', { ...createContext });
-      mutate('/context')
-      toast.success('Grupo criado')
-    } catch (error: any) {
-      toast.error('erro ao criar grupo', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  }
-
-  const drop = async (contextId: string) => {
-    try {
-      await api.delete(`/context/${contextId}`);
-      mutate('/context')
-      toast.success('Grupo deletado')
-    } catch (error: any) {
-      toast.error('erro ao deletar grupo', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  }
-
-  const execute = async (contextName: string) => {
-    try {
-      await api.post(`/context/${contextName}`);
-      mutate('/context')
-      toast.success('Grupo de tarefas em execução confira seção de logs para mais detalhes!')
-    } catch (error: any) {
-      toast.error('erro ao executar grupo de tarefas  ', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  }
-
-  const deactivateWorkflowGroup = async (workflowId: string) => {
-    try {
-      await api.post(`/context/deactivate/${workflowId}`);
-      mutate('/context')
-      toast.success('Grupo desativado')
-    } catch (error: any) {
-      toast.error('erro ao desativar grupo', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  }
-
-  const activateWorkflowGroup = async (workflowId: string) => {
-    try {
-      await api.post(`/context/activate/${workflowId}`);
-      mutate('/context')
-      toast.success('Grupo reativado!')
-    } catch (error: any) {
-      toast.error('erro ao reativar grupo', {
-        description: `${JSON.stringify(error?.response?.data?.message)}`
-      })
-    }
-  }
 
   if (loading) return <Loading />
   if (isLoading) return <Loading />
@@ -143,10 +70,10 @@ export default function WorkflowsGroup() {
                 <TableHead className="w-[15%]">Data criação</TableHead>
                 <TableHead className="w-[15%]">Status</TableHead>
                 <TableHead className="w-[20%]">Quantidade de Jobs</TableHead>
-                <TableHead colSpan={4} className="w-[30%] p-2">
+                <TableHead colSpan={4} className="w-[30%]">
                   <Dialog open={openModalCreateContext}>
                     <DialogTrigger asChild onClick={() => setOpenModalCreateContext(true)}>
-                      <div className="flex rounded-md shadow-md h-10 text-center justify-center items-center gap-3 bg-green-700 hover:bg-green-900 hover:cursor-pointer text-white">
+                      <div className="flex rounded-md shadow-md h-[2.5rem] text-center justify-center items-center gap-3 bg-green-700 hover:bg-green-900 hover:cursor-pointer text-white">
                         <PlusCircleIcon />
                         <Label className="hover:cursor-pointer">Criar grupo de tarefas</Label>
                       </div>
@@ -190,15 +117,15 @@ export default function WorkflowsGroup() {
                   <TableCell>{format(context.create_at, 'dd/MM/yyyy HH:mm:ss')}</TableCell>
                   <TableCell>{context.active ? "Ativo" : "Desativado"}</TableCell>
                   <TableCell>{context.workflow.length}</TableCell>
-                  <TableCell>
+                  <TableCell >
                     {
                       context.Log.length > 0 ?
-                        <div className="w-full flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
-                          <StopCircleIcon className="hover:cursor-pointer" />
+                        <div className="w-full h-[2.5rem] flex bg-slate-700 rounded-md shadow-md text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
+                          <StopCircleIcon className="hover:cursor-pointer " />
                         </div>
                         :
                         <Dialog>
-                          <DialogTrigger className="w-full flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
+                          <DialogTrigger className="w-full h-[2.5rem] flex bg-slate-700 rounded-md shadow-md  text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                             <PlayIcon className="hover:cursor-pointer" />
                           </DialogTrigger>
                           <DialogContent className="w-auto flow flow-col gap-4 bg-slate-200 text-slate-800 shadow-lg">
@@ -213,7 +140,7 @@ export default function WorkflowsGroup() {
                               >Voltar</Button>
                               <Button
                                 type="button"
-                                onClick={() => execute(context.name)}
+                                onClick={() => hook.execute(context.name, mutate)}
                                 className="w-32 bg-green-700 hover:bg-green-900 hover:cursor-pointer text-white">Iniciar</Button>
                             </DialogClose>
                           </DialogContent>
@@ -223,16 +150,16 @@ export default function WorkflowsGroup() {
                   <TableCell>
                     {context.active ?
                       <div
-                        onClick={() => deactivateWorkflowGroup(context.id)}
-                        className="flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
+                        onClick={() => hook.deactivateWorkflowGroup(context.id, mutate)}
+                        className="flex bg-slate-700 rounded-md shadow-md h-[2.5rem] text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                         <PowerOff
                           className="hover:cursor-pointer"
                         />
                       </div>
                       :
                       <div
-                        onClick={() => activateWorkflowGroup(context.id)}
-                        className="flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
+                        onClick={() => hook.activateWorkflowGroup(context.id, mutate)}
+                        className="flex bg-slate-700 rounded-md shadow-md h-[2.5rem] text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                         <Power
                           className="hover:cursor-pointer"
                         />
@@ -242,13 +169,13 @@ export default function WorkflowsGroup() {
                   <Dialog >
                     <DialogTrigger asChild
                       onClick={() => {
-                        setContextName('')
+                        hook.setContextName('')
                         setWorkflowsAttached(context.workflow)
                       }}
                     >
                       <TableCell
                         className="justify-items-end w-full">
-                        <div className="flex bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
+                        <div className="flex bg-slate-700 rounded-md shadow-md h-[2.5rem] text-center justify-center items-center hover:bg-slate-500 hover:cursor-pointer text-white">
                           <PenSquareIcon className="hover:cursor-pointer" />
                         </div>
                       </TableCell>
@@ -260,15 +187,15 @@ export default function WorkflowsGroup() {
                       <div className="flex flex-col gap-2 py-2">
                         <div className="grid grid-cols-12 gap-2 my-4">
                           <Input
-                            onChange={e => setContextName(e.target.value)}
+                            onChange={e => hook.setContextName(e.target.value)}
                             type="text"
                             className="col-span-10 bg-primary text-secondary"
                             name="context-name"
                             placeholder="Digite o novo nome"
-                            value={contextName} />
+                            value={hook.contextName} />
                           <Button
                             type="button"
-                            onClick={() => updateContextName(context.id)}
+                            onClick={() => hook.updateContextName(context.id, mutate)}
                             className="col-span-2"
                           >Alterar nome
                           </Button>
@@ -295,7 +222,7 @@ export default function WorkflowsGroup() {
                   </Dialog>
                   <TableCell className="justify-items-end">
                     <Dialog>
-                      <DialogTrigger className="flex w-full bg-slate-700 rounded-md shadow-md h-10 text-center justify-center items-center hover:bg-red-500 hover:cursor-pointer text-white">
+                      <DialogTrigger className="flex w-full bg-slate-700 rounded-md shadow-md h-[2.5rem] text-center justify-center items-center hover:bg-red-500 hover:cursor-pointer text-white">
                         <Trash2 className="hover:cursor-pointer" />
                       </DialogTrigger>
                       <DialogContent className="w-auto flex flex-col  gap-4 bg-slate-200 text-slate-800 shadow-lg">
@@ -314,7 +241,7 @@ export default function WorkflowsGroup() {
                           <Button
                             type="button"
                             variant="destructive"
-                            onClick={() => drop(context.id)}
+                            onClick={() => hook.drop(context.id, mutate)}
                             className="w-32">Confirmar</Button>
                         </DialogClose>
                       </DialogContent>

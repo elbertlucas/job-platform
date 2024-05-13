@@ -57,13 +57,10 @@ function Admin() {
     setOpenCreateModal(!open)
   }
 
-
-
   return (
     <Container>
       <>
         <Header logout={logout} />
-
         <div className="text-slate-900 bg-slate-200 rounded-lg shadow-lg pb-2">
           <Table>
             <TableCaption>Lista de Usuários</TableCaption>

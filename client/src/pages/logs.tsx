@@ -13,102 +13,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import AuthContext from "@/contexts/auth-context"
 import { useFetch } from "@/hooks/useFetch"
-import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { logs } from "@/models/logs"
 import { statusLogBackgroudColor } from "@/utils/_"
-import axios from "axios"
 import { format } from "date-fns"
 import { CalendarIcon, RefreshCcwIcon, ShieldAlertIcon, Trash2Icon, TrashIcon } from "lucide-react"
 import { useContext, useState } from "react"
 import { DateRange, SelectRangeEventHandler } from "react-day-picker"
 import { Navigate } from "react-router-dom"
-import { Toaster, toast } from "sonner"
+import { Toaster } from "sonner"
+import useLogs from "@/hooks/useLogs";
 
 export default function Logs({
   className,
 }: React.HTMLAttributes<HTMLDivElement>) {
   const { authenticated, loading, logout } = useContext(AuthContext)
-  const [loadingAnimation, setLoadingAnimation] = useState(false)
+  const [date, setDate] = useState<DateRange>()
+  const { data: logs, error, isLoading, mutate } = useFetch<logs[]>(`/logs/?from=${date?.from}&to=${date?.to}`)
+  const hook = useLogs()
+
+  const { contexts, status, workflow } = hook.formatLogs(logs)
   const [filter, setFilter] = useState({
     status: 'ALL',
     workflowId: 'ALL',
     contextId: 'ALL'
   })
-  const [date, setDate] = useState<DateRange>()
-  const { data: logs, error, isLoading, mutate } = useFetch<logs[]>(`/logs/?from=${date?.from}&to=${date?.to}`)
 
   if (loading) return <Loading />
   if (isLoading) return <Loading />
   if (error) return <ErrorComponent error={error} />
   if (!authenticated) return <Navigate to="/login" replace={true} />
-
-  const uniqueContextKeys = new Set();
-  const uniqueStatusKeys = new Set();
-  const uniqueWorkflowKeys = new Set();
-  const contexts: { id: string, description: string }[] = []
-  const status: { id: string, description: string }[] = []
-  const workflow: { id: string, description: string }[] = []
-  for (const log of logs) {
-    const contextId = log.workflow.context_id
-    const statusId = log.status
-    const workflowId = log.workflow.id
-    if (!uniqueContextKeys.has(contextId)) {
-      uniqueContextKeys.add(contextId);
-      contexts.push({ id: contextId, description: log.context.name });
-    }
-    if (!uniqueStatusKeys.has(statusId)) {
-      uniqueStatusKeys.add(statusId);
-      status.push({ id: statusId, description: log.status });
-    }
-    if (!uniqueWorkflowKeys.has(workflowId)) {
-      uniqueWorkflowKeys.add(workflowId);
-      workflow.push({ id: workflowId, description: log.workflow.name });
-    }
-  }
-  const reload = () => {
-    mutate(`/logs/?from=${date?.from}&to=${date?.to}`)
-    setLoadingAnimation(true)
-    setTimeout(() => setLoadingAnimation(false), 500)
-  }
-
-  const dropLog = async () => {
-    try {
-      await api.delete(`/logs`);
-      mutate(`/logs/?from=${date?.from}&to=${date?.to}`)
-      toast.success('todos logs foram deletados')
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        toast.error('erro ao deletar logs', {
-          description: `${JSON.stringify(error?.response?.data?.message)}`
-        })
-      } else {
-        toast.error('erro ao deletar logs', {
-          description: 'Internal Server Error'
-        })
-        console.log(error)
-      }
-    }
-  }
-
-  const dropLogById = async (logId: string) => {
-    try {
-      await api.delete(`/logs/${logId}`);
-      mutate(`/logs/?from=${date?.from}&to=${date?.to}`)
-      toast.success('log deletado')
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        toast.error('erro ao deletar logs', {
-          description: `${JSON.stringify(error?.response?.data?.message)}`
-        })
-      } else {
-        toast.error('erro ao deletar logs', {
-          description: 'Internal Server Error'
-        })
-        console.log(error)
-      }
-    }
-  }
 
   return (
     <Container>
@@ -212,11 +146,11 @@ export default function Logs({
           </div>
           <div className="flex gap-2">
             <button
-              onClick={reload}
+              onClick={() => hook.reload(date, mutate)}
               className="flex w-40 text-center text-white justify-center items-center bg-green-700 rounded-md shadow-md hover:bg-green-900 hover:cursor-pointer">
               <RefreshCcwIcon
-                onClick={reload}
-                className={`${loadingAnimation ? 'animate-spin' : ''} w-full p-2 h-10`} />
+                onClick={() => hook.reload(date,mutate)}
+                className={`${hook.loadingAnimation ? 'animate-spin' : ''} w-full p-2 h-10`} />
             </button>
             <Dialog>
               <DialogTrigger className="w-40 flex rounded-md shadow-md h-10 text-center justify-center items-center hover:cursor-pointer text-white">
@@ -235,7 +169,7 @@ export default function Logs({
                   >Voltar</Button>
                   <Button
                     type="button"
-                    onClick={dropLog}
+                    onClick={() => hook.dropLog(date, mutate)}
                     className="w-32">Confirmar</Button>
                 </DialogClose>
               </DialogContent>
@@ -278,7 +212,7 @@ export default function Logs({
                     </Badge>
                   </TableCell>
                   <TableCell
-                    onClick={() => dropLogById(log.id)}
+                    onClick={() => hook.dropLogById(date, log.id, mutate)}
                     className="flex justify-center items-center hover:text-red-600 hover:cursor-pointer">
                     <Trash2Icon />
                   </TableCell>

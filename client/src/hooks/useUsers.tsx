@@ -55,7 +55,7 @@ export function useUsers() {
         try {
             await api.post(`/users/deactivate/${userId}`);
             mutate('/users')
-            toast.success('usuário desativado')
+            toast.success('Usuário desativado')
         } catch (error: any) {
             toast.error('Erro ao desativar usuário',
                 { description: `${JSON.stringify(error?.response?.data?.message)}` })
@@ -66,7 +66,7 @@ export function useUsers() {
         try {
             await api.post(`/users/activate/${userId}`);
             mutate('/users')
-            toast.success('usuário reativado')
+            toast.success('Usuário reativado')
         } catch (error: any) {
             toast.error('Erro ao reativar usuário',
                 { description: `${JSON.stringify(error?.response?.data?.message)}` })
