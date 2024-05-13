@@ -1,0 +1,29 @@
+{
+  "name": "job-platform",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "server:start": "npm run start:prod --workspace server",
+    "client:start": "npm i --workspace client && npm run build --workspace client",
+    "prepare:app": "npm run server:start && npm run client:start",
+    "client:dev": "npm run dev --workspace client ",
+    "server:dev": "npm run start:dev --workspace server",
+    "deploy:server": "cd server && npx pm2 start ./dist/main.js --name server-app && npx pm2 save",
+    "deploy:client": "npx pm2 start ./client/server.js --name client-app && npx pm2 save",
+    "start:app": "npm run prepare:app && npm run deploy:server && npm run deploy:client",
+    "restart:app": "npx pm2 restart server-app client-app",
+    "stop:app": "npx pm2 stop all",
+    "delete:app": "npx pm2 delete all -f"
+  },
+  "author": "Elbert Lucas",
+  "engines": {
+    "node": "v20.13.1",
+    "npm":"10.7.0"
+  },
+  "license": "ISC",
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}

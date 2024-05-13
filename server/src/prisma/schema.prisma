@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Workflow {
+  id         String   @id @default(uuid())
+  name       String
+  active     Boolean  @default(true)
+  scheduled  Boolean  @default(false)
+  context    Context? @relation(fields: [context_id], references: [id])
+  context_id String?
+  Task       Task[]
+  Log        Log[]
+
+  @@map("workflow")
+}
+
+model Context {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  active    Boolean    @default(true)
+  create_at DateTime   @default(now())
+  workflow  Workflow[]
+  Log       Log[]
+
+  @@map("context")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  name        String
+  label       String
+  slug        String   @unique
+  active      Boolean  @default(true)
+  cron_time   String
+  workflow    Workflow @relation(fields: [workflow_id], references: [id])
+  workflow_id String
+
+  @@map("task")
+}
+
+model Log {
+  id            String    @id @default(uuid())
+  workflow_name String
+  workflow      Workflow  @relation(fields: [workflow_id], references: [id])
+  workflow_id   String
+  context       Context?  @relation(fields: [context_id], references: [id])
+  context_id    String?
+  message       String?
+  code          Int?
+  start_at      DateTime  @default(now())
+  finish_at     DateTime?
+  status        String
+
+  @@map("log")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  active    Boolean  @default(true)
+  role      String   @default("user")
+  create_at DateTime @default(now())
+
+  @@map("user")
+}
