@@ -4,7 +4,7 @@ import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class LogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   private readonly logger = new Logger(LogService.name);
   async create(createLog: CreateLog) {
     const log = await this.prisma.log.create({ data: createLog });

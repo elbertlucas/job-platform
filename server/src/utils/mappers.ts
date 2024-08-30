@@ -4,6 +4,8 @@ type workflowPrismaType = {
   active: boolean;
   scheduled: boolean;
   context_id: string;
+  extension: string;
+  script: string;
   Log: {
     workflow: {
       id: string;
@@ -30,6 +32,8 @@ export function workflowMapper(wk: workflowPrismaType) {
     name: wk.name,
     active: wk.active,
     scheduled: wk.scheduled,
+    extension: wk.extension,
+    script: wk.script,
     context_id: wk.context_id,
     logs: wk.Log,
     tasks: wk.Task.map((task) => {

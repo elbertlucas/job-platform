@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateWorkflowDto } from '../dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '../dto/update-workflow.dto';
-import { ConfigService } from '@nestjs/config';
+// import { ConfigService } from '@nestjs/config';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -18,15 +18,18 @@ export class WorkflowService {
     private moduleRef: ModuleRef,
     private readonly prisma: PrismaService,
     private readonly logService: LogService,
-    private readonly configService: ConfigService,
-  ) {}
+    // private readonly configService: ConfigService,
+  ) { }
   private readonly logger = new Logger(WorkflowService.name);
+
   async create(createWorkflowDto: CreateWorkflowDto) {
     if (!existsSync('./src/workflows')) mkdirSync('./src/workflows');
     const newWorkflow = await this.prisma.workflow.create({
       data: {
         name: createWorkflowDto.name,
         context_id: createWorkflowDto.context_id,
+        extension: createWorkflowDto.extension,
+        script: createWorkflowDto.script
       },
     });
 
@@ -34,15 +37,14 @@ export class WorkflowService {
   }
 
   async createBatch(newWorkflow: Workflow) {
-    const kinmeInstalation = this.configService.get('KNIME_INSTALATION_PATH');
-    const args = this.configService.get('KNIME_ARGS');
-    const directoryBase = this.configService.get('KNIME_WORKSPACE');
-    const extension = '.bat';
-    const script = `${kinmeInstalation} ${args} ${directoryBase}${newWorkflow.name}"`;
+    // const kinmeInstalation = this.configService.get('KNIME_INSTALATION_PATH');
+    // const args = this.configService.get('KNIME_ARGS');
+    // const directoryBase = this.configService.get('KNIME_WORKSPACE');
+    // const script = `${kinmeInstalation} ${args} ${directoryBase}${newWorkflow.name}"`;
     const pathFile = resolve(
-      join('./src/workflows', `${newWorkflow.name}${extension}`),
+      join('./src/workflows', `${newWorkflow.name}.${newWorkflow.extension}`),
     );
-    writeFileSync(pathFile, script);
+    writeFileSync(pathFile, newWorkflow.script);
     this.logger.debug(`workflow ${newWorkflow.name} created`);
   }
 
@@ -54,6 +56,8 @@ export class WorkflowService {
         scheduled: true,
         context_id: true,
         active: true,
+        extension: true,
+        script: true,
         Log: {
           where: {
             status: {
@@ -88,6 +92,8 @@ export class WorkflowService {
         scheduled: true,
         context_id: true,
         active: true,
+        extension: true,
+        script: true,
         Log: {
           where: {
             status: {
@@ -169,9 +175,8 @@ export class WorkflowService {
   }
 
   async removeBatch(workflow: Workflow) {
-    const extension = '.bat';
     const pathFile = resolve(
-      join('./src/workflows', `${workflow.name}${extension}`),
+      join('./src/workflows', `${workflow.name}.${workflow.extension}`),
     );
 
     unlinkSync(pathFile);

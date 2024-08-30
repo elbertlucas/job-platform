@@ -11,7 +11,7 @@ export class ContextService {
     private readonly prisma: PrismaService,
     private readonly task: TaskService,
     private readonly workflowService: WorkflowService,
-  ) {}
+  ) { }
 
   async createContext(createContextDto: CreateContextDto) {
     const context = await this.prisma.context.findUnique({
@@ -50,7 +50,7 @@ export class ContextService {
     });
   }
   async findAllContextByName(name: string) {
-    return await this.prisma.context.findUnique({
+    const context = await this.prisma.context.findUnique({
       where: { name },
       select: {
         id: true,
@@ -76,6 +76,8 @@ export class ContextService {
         },
       },
     });
+    if (!context) throw new BadRequestException('Nome do grupo é inválido');
+    return context
   }
 
   async startFlowByContextName(name: string) {
@@ -146,6 +148,7 @@ export class ContextService {
         },
       },
     });
+    if (!context) throw new BadRequestException('id do grupo inválido');
     if (context.workflow.length > 0) {
       for (const workflow of context.workflow) {
         await this.workflowService.remove(workflow.id);

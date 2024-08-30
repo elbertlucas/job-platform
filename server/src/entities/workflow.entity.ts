@@ -4,4 +4,6 @@ export type Workflow = {
   active: boolean;
   scheduled: boolean;
   context_id: string;
+  extension: string;
+  script: string;
 };

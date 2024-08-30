@@ -21,7 +21,7 @@ export class TaskService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly schedulerRegistry: SchedulerRegistry,
     private readonly log: LogService,
-  ) {}
+  ) { }
   private readonly logger = new Logger(TaskService.name);
 
   async onModuleInit() {
@@ -125,8 +125,8 @@ export class TaskService implements OnModuleInit {
   async runningWorkflow(flowId: string): Promise<string> {
     const workflow = await this.workflow.findOne(flowId);
     if (!workflow) return `workflow ${flowId} not started!`;
-    const pathFile = resolve(join('./src/workflows', `${workflow.name}.bat`));
-    this.execProcess(workflow.name, workflow.id, pathFile, workflow.context_id);
+    const pathFile = resolve(join('./src/workflows', `${workflow.name}.${workflow.extension}`));
+    this.execProcess(workflow.name, workflow.id, pathFile, workflow.context_id, workflow.extension);
     return `workflow ${workflow.name} started!`;
   }
 
@@ -136,8 +136,8 @@ export class TaskService implements OnModuleInit {
     });
     if (task.active) {
       const workflow = await this.workflow.findOne(task.workflow_id);
-      const pathFile = resolve(join('./src/workflows', `${task.name}.bat`));
-      this.execProcess(task.name, task.workflow_id, pathFile, workflow.context_id);
+      const pathFile = resolve(join('./src/workflows', `${task.name}.${workflow.extension}`));
+      this.execProcess(task.name, task.workflow_id, pathFile, workflow.context_id, workflow.extension);
     } else {
       this.logger.warn(`Fluxo ${task.id} está desativado`);
     }
@@ -148,6 +148,7 @@ export class TaskService implements OnModuleInit {
     flowId: string,
     path: string,
     context_id: string,
+    extension: string
   ) {
     const newLog = {
       id: randomUUID(),
@@ -161,9 +162,10 @@ export class TaskService implements OnModuleInit {
     const log = await this.log.findByID(newLog.id);
     this.logger.debug(`job ${log.workflow_name} started!`);
 
-    const ls = spawn(path, {});
+    const shell = extension == 'bat' ? 'cmd.exe' : 'powershell.exe'
+    const command = spawn(path, { shell: shell, windowsHide: true });
 
-    ls.on('error', (error) =>
+    command.on('error', (error) =>
       this.log.updateLog({
         id: log.id,
         workflow_name: log.workflow_name,
@@ -176,7 +178,7 @@ export class TaskService implements OnModuleInit {
       }),
     );
 
-    ls.on('close', (code) => {
+    command.on('close', (code) => {
       if (code == 0) {
         this.log.updateLog({
           id: log.id,
@@ -188,6 +190,7 @@ export class TaskService implements OnModuleInit {
           status: 'success',
           finish_at: new Date(),
         });
+        console.log(path)
       } else {
         this.log.updateLog({
           id: log.id,

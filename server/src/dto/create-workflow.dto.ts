@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn } from 'class-validator';
 import { Workflow } from 'src/entities/workflow.entity';
 
 export class CreateWorkflowDto implements Workflow {
@@ -17,4 +17,10 @@ export class CreateWorkflowDto implements Workflow {
   @IsString()
   @IsNotEmpty()
   context_id: string;
+  @IsNotEmpty()
+  @IsIn(['bat', 'ps1'])
+  extension: string;
+  @IsString()
+  @IsNotEmpty()
+  script: string;
 }

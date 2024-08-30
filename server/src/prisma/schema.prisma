@@ -12,6 +12,8 @@ model Workflow {
   name       String
   active     Boolean  @default(true)
   scheduled  Boolean  @default(false)
+  extension  String
+  script     String
   context    Context? @relation(fields: [context_id], references: [id])
   context_id String?
   Task       Task[]
